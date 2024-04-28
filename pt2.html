@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Maze</title>
+	<style>
+      body {
+        background-color: #888888;
+      }
+    </style>
+</head>
+<body>
+	<center><canvas id="myCanvas" width="800" height="800" style="border:1px solid #000000;"></canvas></center>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+	<script>
+		// You need a context to draw in a HTML5 canvas.
+		// You can get it by grabbing the canvas (by its ID) then doing .getContext.
+		// You usually want "2d" but you can ask for "webgl", "webgl2" or "webgpu" to do 3D rendering which is way more advanced than this.
+		const c = document.getElementById("myCanvas");
+		
+		const ctx = c.getContext("2d");
+		
+		// Now that that's working, let's draw the rings *segmented* to what will be our cell size.
+		function degToRad(degrees) {
+			return degrees * (Math.PI / 180);
+		}
+
+		function radToDeg(rad) {
+			return rad / (Math.PI / 180);
+		}
+
+		const stroke_style_1 = '#00FF00';
+		const stroke_style_2 = '#FF0000';
+
+		const origin_x = c.width / 2;
+		const origin_y = c.height / 2;
+		
+		const ring_height = 50;
+		const ring_count = 8;
+		const ring_divisions = 12;
+		
+		const division_degrees = degToRad(360) / ring_divisions;
+		
+		for (let i = 0; i < ring_count; i++)
+		{
+			for (let j = 0; j < ring_divisions; j++)
+			{
+				ctx.beginPath();
+				ctx.arc(origin_x, origin_y, ring_height * i, division_degrees * j, (division_degrees * (j+1)));
+				
+				if (j+i & 1)
+				{
+					ctx.strokeStyle = stroke_style_1;
+				}
+				else
+				{
+					ctx.strokeStyle = stroke_style_2;
+				}
+				
+				ctx.stroke();
+			}
+		}
+	</script>
+</body>
+</html>

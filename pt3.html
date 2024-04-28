@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Maze</title>
+	<style>
+      body {
+        background-color: #888888;
+      }
+    </style>
+</head>
+<body>
+	<center><canvas id="myCanvas" width="800" height="800" style="border:1px solid #000000;"></canvas></center>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+	<script>
+		// You need a context to draw in a HTML5 canvas.
+		// You can get it by grabbing the canvas (by its ID) then doing .getContext.
+		// You usually want "2d" but you can ask for "webgl", "webgl2" or "webgpu" to do 3D rendering which is way more advanced than this.
+		const c = document.getElementById("myCanvas");
+		
+		const ctx = c.getContext("2d");
+		
+		// Let's show the individual cells.
+		// We need to do a bit of quick maths to calculate 
+		function degToRad(degrees) {
+			return degrees * (Math.PI / 180);
+		}
+
+		function radToDeg(rad) {
+			return rad / (Math.PI / 180);
+		}
+
+		const origin_x = c.width / 2;
+		const origin_y = c.height / 2;
+		
+		const ring_height = 50;
+		const ring_count = 7;
+		const ring_divisions = 12;
+		
+		const division_degrees = degToRad(360) / ring_divisions;
+		
+		for (let i = 0; i < ring_count; i++)
+		{
+			for (let j = 0; j < ring_divisions; j++)
+			{
+				let radius_inner = ring_height * i;
+				let radius_outer = ring_height * (i+1);
+				
+				let arc_start = division_degrees * j;
+				let arc_end = (division_degrees * (j+1));
+			
+				// cell inner arc
+				ctx.beginPath();
+				ctx.arc(origin_x, origin_y, radius_inner, arc_start, arc_end);
+				ctx.stroke();
+				
+				// cell left inner wall - we have to manually calculate the start position of both arcs
+				// APIs won't do everything for you! It's worth knowing the equations for circle calculations
+				{
+					ctx.beginPath();
+					
+					let start_x = radius_inner * Math.cos(arc_start) + origin_x;
+					let start_y = radius_inner * Math.sin(arc_start) + origin_y;
+					
+					let end_x = radius_outer * Math.cos(arc_start) + origin_x;
+					let end_y = radius_outer * Math.sin(arc_start) + origin_y;
+					
+					ctx.moveTo(start_x, start_y);
+					ctx.lineTo(end_x, end_y);
+					
+					ctx.stroke();
+				}
+				
+				// cell right inner wall - we have to manually calculate the end position of the both arcs
+				{
+					ctx.beginPath();
+					
+					let start_x = radius_inner * Math.cos(arc_end) + origin_x;
+					let start_y = radius_inner * Math.sin(arc_end) + origin_y;
+					
+					let end_x = radius_outer * Math.cos(arc_end) + origin_x;
+					let end_y = radius_outer * Math.sin(arc_end) + origin_y;
+					
+					ctx.moveTo(start_x, start_y);
+					ctx.lineTo(end_x, end_y);
+					
+					ctx.stroke();
+				}
+
+				// cell outer arc
+				ctx.beginPath();
+				ctx.arc(origin_x, origin_y, radius_outer, arc_end, arc_start, true);
+				ctx.stroke();
+			}
+		}
+	</script>
+</body>
+</html>

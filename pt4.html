@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Maze</title>
+	<style>
+      body {
+        background-color: #888888;
+      }
+    </style>
+</head>
+<body>
+	<center><canvas id="myCanvas" width="800" height="800" style="border:1px solid #000000;"></canvas></center>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+	<script>
+		// You need a context to draw in a HTML5 canvas.
+		// You can get it by grabbing the canvas (by its ID) then doing .getContext.
+		// You usually want "2d" but you can ask for "webgl", "webgl2" or "webgpu" to do 3D rendering which is way more advanced than this.
+		const c = document.getElementById("myCanvas");
+		
+		const ctx = c.getContext("2d");
+		
+		// Now we finally need some kind of representation for our map.
+		// We can make an array of 7 (ring_count) arrays of 12 (ring_divisions).
+		// Then we randomly walk through this with recursive backtracking until we can't visit any more cells.
+		
+		class Cell {
+			constructor() {
+				this.outer_wall = true;
+				this.right_wall = true;
+				this.visited = false;
+			}
+		}
+		
+		// Stolen functions.
+		function degToRad(degrees) {
+			return degrees * (Math.PI / 180);
+		}
+
+		function radToDeg(rad) {
+			return rad / (Math.PI / 180);
+		}
+		
+		function getRandomInt(min, max) {
+			min = Math.ceil(min);
+			max = Math.floor(max);
+			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+
+		const origin_x = c.width / 2;
+		const origin_y = c.height / 2;
+		
+		const ring_height = 50;
+		const ring_count = 7;
+		const ring_divisions = 12;
+		
+		// We create our empty maze data here.
+		var maze = new Array(ring_count);
+		
+		for (let i = 0; i < ring_count; i++)
+		{
+			maze[i] = new Array(ring_divisions);
+			
+			for (let j = 0; j < ring_divisions; j++)
+			{
+				maze[i][j] = new Cell();
+			}
+		}
+		
+		function unvisited_neighbours(ring, division)
+		{
+			let out_neighbours = [];
+		
+			// The inner ring.
+			if (ring > 0) 
+			{
+				if (!maze[ring-1][division].visited)
+				{
+					out_neighbours.push([ring-1, division]);
+				}
+			}
+			
+			// The outer ring.
+			if (ring < ring_count-2) 
+			{
+				if (!maze[ring+1][division].visited)
+				{
+					out_neighbours.push([ring+1, division]);
+				}
+			}
+			
+			// The division on our left.
+			let division_left = (division+ring_divisions-1) % ring_divisions;
+			
+			if (!maze[ring][division_left].visited)
+			{
+				out_neighbours.push([ring, division_left]);
+			}
+			
+			// The division on our right.
+			let division_right = (division+1) % ring_divisions;
+
+			if (!maze[ring][division_right].visited)
+			{
+				out_neighbours.push([ring, division_right]);
+			}
+			
+			return out_neighbours;
+		}
+		
+		function open_wall_between(cand1, cand2)
+		{
+			if (cand1[0] == cand2[0])
+			{
+				// rings are the same, the division must be different.
+				let division1 = cand1[1];
+				let division2 = cand2[1];
+				
+				let division1_next = (division1 + 1) % ring_divisions;
+				
+				if (division2 == division1_next)
+				{
+					// We now know cand1 is on the left
+					maze[cand1[0]][cand1[1]].right_wall = false;
+				}
+				else
+				{
+					// Just assume the opposite
+					maze[cand2[0]][cand2[1]].right_wall = false;
+				}
+			}
+			else if (cand1[1] == cand2[1])
+			{
+				// its the rings that are different.
+				let ring1 = cand1[1];
+				let ring2 = cand2[1];
+				
+				let ring1_next = ring1 + 1;
+				
+				if (ring2 == ring1_next)
+				{
+					// We now know cand1 is on the inside
+					maze[cand1[0]][cand1[1]].outer_wall = false;
+				}
+				else
+				{
+					// Just assume the opposite
+					maze[cand2[0]][cand2[1]].outer_wall = false;
+				}
+			}
+		}
+		
+		// Everything below here is the maze generation code.
+		{
+			// Start at the outer ring, segment 0
+			let ring = ring_count - 1;
+			let division = 0;
+			
+			maze[ring][division].visited = true;
+			
+			// Immediately open the outer wall for that space (this is our maze entrance)
+			maze[ring][division].outer_wall = false;
+			
+			// Also immediately remove all walls in ring 0, this is our goal
+			for (let i = 0; i < ring_divisions; i++)
+			{
+				maze[0][i].right_wall = false;
+				
+				// the maze gen is never allowed to enter the the "goal".
+				// At the end we will open up the wall in the final inner ring that we encountered last in our backtrack, which hopefully will be a really hard one to reach.
+				maze[0][i].visited = true;
+			}
+			
+			backtrack_path = [];
+			current_best_entry = 0; // Current hardest to reach entry point division for ring 0
+			
+			// path loop
+			let candidates = unvisited_neighbours(ring, division);
+			
+			do
+			{
+				console.log(ring, division);
+			
+				// If there are any candidates, choose one at random to visit
+				if (candidates.length != 0)
+				{
+					backtrack_path.push([ring, division]);
+					
+					let cand = candidates[getRandomInt(0, candidates.length-1)];
+					
+					open_wall_between([ring, division], cand);
+					
+					ring = cand[0];
+					division = cand[1];
+					
+					maze[ring][division].visited = true;
+					
+					// Remember to set current_best_entry if we just entered ring 1
+					if (ring == 1)
+					{
+						current_best_entry = division;
+					}
+					
+					console.log("Entered");
+				}
+				// Otherwise, go up the backtrack path
+				else
+				{
+					let cand = backtrack_path.pop();
+					
+					ring = cand[0];
+					division = cand[1];
+					
+					console.log("Backtracked");
+				}
+				
+				candidates = unvisited_neighbours(ring, division);
+			}
+			while(candidates.length != 0 || backtrack_path.length != 0)
+			
+			// Create an entry point to the center at the current hardest to reach entry point and our maze is done!
+			maze[0][current_best_entry].outer_wall = false;
+		}
+		
+		// Everything below here is the drawing code.
+		const division_degrees = degToRad(360) / ring_divisions;
+		
+		for (let i = 0; i < ring_count; i++)
+		{
+			for (let j = 0; j < ring_divisions; j++)
+			{
+				let radius_inner = ring_height * i;
+				let radius_outer = ring_height * (i+1);
+				
+				let arc_start = division_degrees * j;
+				let arc_end = (division_degrees * (j+1));
+			
+				// cell outer arc
+				if (maze[i][j].outer_wall)
+				{
+					ctx.beginPath();
+					ctx.arc(origin_x, origin_y, radius_outer, arc_start, arc_end);
+					ctx.stroke();
+				}
+				
+				// cell right wall - we have to manually calculate the start position of both arcs
+				// APIs won't do everything for you! It's worth knowing the equations for circle calculations
+				if (maze[i][j].right_wall)
+				{
+					ctx.beginPath();
+					
+					let start_x = radius_inner * Math.cos(arc_end) + origin_x;
+					let start_y = radius_inner * Math.sin(arc_end) + origin_y;
+					
+					let end_x = radius_outer * Math.cos(arc_end) + origin_x;
+					let end_y = radius_outer * Math.sin(arc_end) + origin_y;
+					
+					ctx.moveTo(start_x, start_y);
+					ctx.lineTo(end_x, end_y);
+					
+					ctx.stroke();
+				}
+				
+				// We don't draw the left wall because *we don't need to*. The cell before us already had a left inner wall in every case.
+
+				// same thing for the cell inner arc. We never need one because the cell before us already drew an outer wall we can use as an inner one.
+			}
+		}
+	</script>
+</body>
+</html>

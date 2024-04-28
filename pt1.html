@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Maze</title>
+	<link href="style.css" rel="stylesheet" />
+</head>
+<body>
+	<center><canvas id="myCanvas" width="800" height="800" style="border:1px solid #000000;"></canvas></center>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+	<script>
+		// You need a context to draw in a HTML5 canvas.
+		// You can get it by grabbing the canvas (by its ID) then doing .getContext.
+		// You usually want "2d" but you can ask for "webgl", "webgl2" or "webgpu" to do 3D rendering which is way more advanced than this.
+		const c = document.getElementById("myCanvas");
+		
+		const ctx = c.getContext("2d");
+		
+		// Let's start just by figuring out how to draw the rings.
+		function degToRad(degrees) {
+			return degrees * (Math.PI / 180);
+		}
+
+		function radToDeg(rad) {
+			return rad / (Math.PI / 180);
+		}
+
+
+		const origin_x = c.width / 2;
+		const origin_y = c.height / 2;
+		
+		const ring_height = 50;
+		const ring_count = 8;
+		
+		for (let i = 0; i < ring_count; i++)
+		{
+			ctx.beginPath();
+			ctx.arc(origin_x, origin_y, ring_height * i, 0, degToRad(360));
+			ctx.stroke();
+		}
+	</script>
+</body>
+</html>
